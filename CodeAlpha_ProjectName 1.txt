@@ -1,0 +1,178 @@
+import java.util.*;
+import java.io.*;
+
+// --- Stock class ---
+class Stock {
+    String symbol;
+    double price;
+
+    public Stock(String symbol, double price) {
+        this.symbol = symbol;
+        this.price = price;
+    }
+}
+
+// --- Transaction class ---
+class Transaction {
+    String type;
+    String symbol;
+    int quantity;
+    double price;
+    Date date;
+
+    public Transaction(String type, String symbol, int quantity, double price) {
+        this.type = type;
+        this.symbol = symbol;
+        this.quantity = quantity;
+        this.price = price;
+        this.date = new Date();
+    }
+
+    @Override
+    public String toString() {
+        return date + " | " + type + " | " + symbol + " | Qty: " + quantity + " | Price: ₹" + price;
+    }
+}
+
+// --- Portfolio class ---
+class Portfolio {
+    Map<String, Integer> holdings = new HashMap<>();
+    double balance;
+    List<Transaction> transactions = new ArrayList<>();
+
+    public Portfolio(double initialBalance) {
+        this.balance = initialBalance;
+    }
+
+    public void buyStock(String symbol, int quantity, double price) {
+        double cost = quantity * price;
+        if (balance >= cost) {
+            holdings.put(symbol, holdings.getOrDefault(symbol, 0) + quantity);
+            balance -= cost;
+            transactions.add(new Transaction("BUY", symbol, quantity, price));
+            System.out.println("✅ Bought " + quantity + " shares of " + symbol);
+        } else {
+            System.out.println("❌ Not enough balance!");
+        }
+    }
+
+    public void sellStock(String symbol, int quantity, double price) {
+        int owned = holdings.getOrDefault(symbol, 0);
+        if (owned >= quantity) {
+            holdings.put(symbol, owned - quantity);
+            balance += quantity * price;
+            transactions.add(new Transaction("SELL", symbol, quantity, price));
+            System.out.println("✅ Sold " + quantity + " shares of " + symbol);
+        } else {
+            System.out.println("❌ Not enough shares to sell!");
+        }
+    }
+
+    public void showPortfolio(Map<String, Stock> market) {
+        System.out.println("\n📊 Portfolio:");
+        for (String symbol : holdings.keySet()) {
+            int qty = holdings.get(symbol);
+            double currentPrice = market.get(symbol).price;
+            System.out.println(symbol + ": " + qty + " shares | Value: ₹" + (qty * currentPrice));
+        }
+        System.out.println("Cash Balance: ₹" + balance);
+    }
+
+    public void showTransactionHistory() {
+        System.out.println("\n📜 Transaction History:");
+        for (Transaction t : transactions) {
+            System.out.println(t);
+        }
+    }
+
+    public void saveToFile() {
+        try {
+            FileWriter writer = new FileWriter("portfolio_data.txt");
+            writer.write("📊 Portfolio Summary\n");
+            for (String symbol : holdings.keySet()) {
+                writer.write(symbol + ": " + holdings.get(symbol) + " shares\n");
+            }
+            writer.write("Cash Balance: ₹" + balance + "\n\n");
+
+            writer.write("📜 Transaction History\n");
+            for (Transaction t : transactions) {
+                writer.write(t + "\n");
+            }
+            writer.close();
+            System.out.println("💾 Portfolio data saved to 'portfolio_data.txt'");
+        } catch (IOException e) {
+            System.out.println("❌ Error saving portfolio: " + e.getMessage());
+        }
+    }
+}
+
+// --- Main class ---
+public class Main {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+
+        Map<String, Stock> market = new HashMap<>();
+        market.put("TCS", new Stock("TCS", 3700.0));
+        market.put("INFY", new Stock("INFY", 1500.0));
+        market.put("RELI", new Stock("RELI", 2800.0));
+        market.put("HDFC", new Stock("HDFC", 2700.0));
+
+        Portfolio portfolio = new Portfolio(50000.0); // ₹50,000 starting balance
+
+        while (true) {
+            System.out.println("\n--- 🧾 Stock Trading Menu ---");
+            System.out.println("1. View Market");
+            System.out.println("2. Buy Stock");
+            System.out.println("3. Sell Stock");
+            System.out.println("4. View Portfolio");
+            System.out.println("5. View Transaction History");
+            System.out.println("6. Exit and Save");
+            System.out.print("Enter your choice: ");
+
+            int choice = sc.nextInt();
+
+            switch (choice) {
+                case 1:
+                    System.out.println("📈 Market Stocks:");
+                    for (Stock s : market.values()) {
+                        System.out.println(s.symbol + " - ₹" + s.price);
+                    }
+                    break;
+                case 2:
+                    System.out.print("Enter stock symbol: ");
+                    String buySym = sc.next().toUpperCase();
+                    System.out.print("Enter quantity: ");
+                    int buyQty = sc.nextInt();
+                    if (market.containsKey(buySym)) {
+                        portfolio.buyStock(buySym, buyQty, market.get(buySym).price);
+                    } else {
+                        System.out.println("❌ Stock not found.");
+                    }
+                    break;
+                case 3:
+                    System.out.print("Enter stock symbol: ");
+                    String sellSym = sc.next().toUpperCase();
+                    System.out.print("Enter quantity: ");
+                    int sellQty = sc.nextInt();
+                    if (market.containsKey(sellSym)) {
+                        portfolio.sellStock(sellSym, sellQty, market.get(sellSym).price);
+                    } else {
+                        System.out.println("❌ Stock not found.");
+                    }
+                    break;
+                case 4:
+                    portfolio.showPortfolio(market);
+                    break;
+                case 5:
+                    portfolio.showTransactionHistory();
+                    break;
+                case 6:
+                    portfolio.saveToFile();
+                    System.out.println("👋 Exiting.");
+                    return;
+                default:
+                    System.out.println("❌ Invalid option.");
+            }
+        }
+    }
+}
